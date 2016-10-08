@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
@@ -33,7 +34,7 @@ int semId = -1;
 struct sembuf sem_lock = { 0, -1, SEM_UNDO };
 struct sembuf sem_unlock = { 0, 1, SEM_UNDO };
 
-#define READERS_COUNT_SIZE 1
+#define READERS_COUNT_SIZE 10
 char* sharedReadersCount;
 
 union semun
@@ -141,10 +142,13 @@ void reader()
 		semop(semId, &sem_unlock, 1);
 		sleep(1);
 		semop(semId, &sem_lock, 1);
+		//sleep(1);
 	}
+	//char temp[10];
 	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) + 1);
-	printf("reader count: %s\n", sharedReadersCount);
-    fflush(stdout);
+	//strcpy(sharedReadersCount, temp);
+	//printf("reader count: %s\n", sharedReadersCount);
+    //fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 	
   int i,j,n;
@@ -166,13 +170,14 @@ void reader()
               readerID, results);
   }
   
-    fflush(stdout);
+    //fflush(stdout);
 	
 	// Decrement the number of readers
 	res = semop(semId, &sem_lock, 1);
 	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) - 1);
-	printf("reader count: %s\n", sharedReadersCount);
-    fflush(stdout);
+	//strcpy(sharedReadersCount, temp);
+	//printf("reader count: %s\n", sharedReadersCount);
+    //fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 }
 
@@ -193,11 +198,16 @@ void writer()
 		semop(semId, &sem_unlock, 1);
 		sleep(1);
 		semop(semId, &sem_lock, 1);
+		//sleep(1);
+		//printf("before update reader count: %s\n", sharedReadersCount);
+		//printf("atoi reader count: %d\n", atoi(sharedReadersCount));
 	}
-	printf("before update reader count: %s\n", sharedReadersCount);
-	sprintf(sharedReadersCount, "%d", -1);
-	printf("after update reader count: %s\n", sharedReadersCount);
-    fflush(stdout);
+	//printf("before update reader count: %s\n", sharedReadersCount);
+	//char temp[10];
+	sprintf(sharedReadersCount, "%s", "-1");
+	//strcpy(sharedReadersCount, temp);
+	//printf("after update reader count: %s\n", sharedReadersCount);
+    //fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 
 	
@@ -224,13 +234,14 @@ void writer()
       printf("Writer %d finishes\n", writerID);
   }
   
-    fflush(stdout);
+    //fflush(stdout);
 	
 	// Set the reader count to 0
 	res = semop(semId, &sem_lock, 1);
-	sprintf(sharedReadersCount, "%d", 0);
-	printf("reader count: %s\n", sharedReadersCount);
-    fflush(stdout);
+	sprintf(sharedReadersCount, "%s", "0");
+	//strcpy(sharedReadersCount, temp);
+	//printf("reader count: %s\n", sharedReadersCount);
+    //fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 }
 
