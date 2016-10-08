@@ -27,9 +27,9 @@ int Delay100ms = 0;
 //-----------------//
 // Semaphore Stuff //
 //-----------------//
-// A semaphore value of 0 means that the data is not being used
-// A semaphore value > 1 is the number of threads that are reading the data
-// A semaphore value of -1 means that a thread is writing the data
+// A sharedReadersCount value of 0 means that the data is not being used
+// A sharedReadersCount value > 1 is the number of threads that are reading the data
+// A sharedReadersCount value of -1 means that a thread is writing the data
 int semId = -1;
 struct sembuf sem_lock = { 0, -1, SEM_UNDO };
 struct sembuf sem_unlock = { 0, 1, SEM_UNDO };
@@ -133,23 +133,18 @@ void calcuate_delay()
  --------------------------------------------*/
 void reader()
 {
-	// Increment the number of readers
-	int res = semop(semId, &sem_lock, 1);
-	// Make sure that no one is writing currently
-	while (atoi(sharedReadersCount) == -1)
-	{
-		// Wait and try later
-		semop(semId, &sem_unlock, 1);
-		sleep(1);
-		semop(semId, &sem_lock, 1);
-		//sleep(1);
-	}
-	//char temp[10];
-	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) + 1);
-	//strcpy(sharedReadersCount, temp);
-	//printf("reader count: %s\n", sharedReadersCount);
-    //fflush(stdout);
-	res = semop(semId, &sem_unlock, 1);
+  // Try to increment the number of readers
+  int res = semop(semId, &sem_lock, 1);
+  // Make sure that no one is writing currently
+  while (atoi(sharedReadersCount) == -1)
+  {
+      // Wait and try later
+      semop(semId, &sem_unlock, 1);
+      sleep(1);
+      semop(semId, &sem_lock, 1);
+  }
+  sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) + 1);
+  res = semop(semId, &sem_unlock, 1);
 	
   int i,j,n;
   char results[FILE_SIZE];
@@ -169,15 +164,10 @@ void reader()
       printf("      Reader %d gets results = %s\n", 
               readerID, results);
   }
-  
-    //fflush(stdout);
 	
 	// Decrement the number of readers
 	res = semop(semId, &sem_lock, 1);
 	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) - 1);
-	//strcpy(sharedReadersCount, temp);
-	//printf("reader count: %s\n", sharedReadersCount);
-    //fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 }
 
@@ -189,26 +179,18 @@ void reader()
  --------------------------------------------*/
 void writer()
 {
-	// Set the reader count to -1
-	int res = semop(semId, &sem_lock, 1);
-	// Make sure that no one is using the data currently
-	while (atoi(sharedReadersCount) != 0)
-	{
-		// Wait and try later
-		semop(semId, &sem_unlock, 1);
-		sleep(1);
-		semop(semId, &sem_lock, 1);
-		//sleep(1);
-		//printf("before update reader count: %s\n", sharedReadersCount);
-		//printf("atoi reader count: %d\n", atoi(sharedReadersCount));
-	}
-	//printf("before update reader count: %s\n", sharedReadersCount);
-	//char temp[10];
-	sprintf(sharedReadersCount, "%s", "-1");
-	//strcpy(sharedReadersCount, temp);
-	//printf("after update reader count: %s\n", sharedReadersCount);
-    //fflush(stdout);
-	res = semop(semId, &sem_unlock, 1);
+  // Try to set the reader count to -1
+  int res = semop(semId, &sem_lock, 1);
+  // Make sure that no one is using the data currently
+  while (atoi(sharedReadersCount) != 0)
+  {
+	  // Wait and try later
+      semop(semId, &sem_unlock, 1);
+      sleep(1);
+      semop(semId, &sem_lock, 1);
+  }
+  sprintf(sharedReadersCount, "%s", "-1");
+  res = semop(semId, &sem_unlock, 1);
 
 	
   int i,j,n;
@@ -233,16 +215,11 @@ void writer()
 
       printf("Writer %d finishes\n", writerID);
   }
-  
-    //fflush(stdout);
 	
-	// Set the reader count to 0
-	res = semop(semId, &sem_lock, 1);
-	sprintf(sharedReadersCount, "%s", "0");
-	//strcpy(sharedReadersCount, temp);
-	//printf("reader count: %s\n", sharedReadersCount);
-    //fflush(stdout);
-	res = semop(semId, &sem_unlock, 1);
+  // Set the reader count to 0
+  res = semop(semId, &sem_lock, 1);
+  sprintf(sharedReadersCount, "%s", "0");
+  res = semop(semId, &sem_unlock, 1);
 }
 
 
@@ -339,8 +316,6 @@ int main()
 		perror("mmap");
 		exit(2);
 	}
-	
-	//printf("%d\n", atoi(sharedReadersCount));
 
   /*------------------------------------------------------- 
   
