@@ -144,6 +144,7 @@ void reader()
 	}
 	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) + 1);
 	printf("reader count: %s\n", sharedReadersCount);
+    fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 	
   int i,j,n;
@@ -164,41 +165,16 @@ void reader()
       printf("      Reader %d gets results = %s\n", 
               readerID, results);
   }
+  
+    fflush(stdout);
 	
 	// Decrement the number of readers
 	res = semop(semId, &sem_lock, 1);
 	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) - 1);
 	printf("reader count: %s\n", sharedReadersCount);
+    fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 }
-
-/*
-void reader()
-{
-	// Increment the number of readers
-	int res = semop(semId, &sem_lock, 1);
-	// Make sure that no one is writing currently
-	while (atoi(sharedReadersCount) == -1)
-	{
-		// Wait and try later
-		semop(semId, &sem_unlock, 1);
-		sleep(1);
-		semop(semId, &sem_lock, 1);
-	}
-	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) + 1);
-	res = semop(semId, &sem_unlock, 1);
-	
-	// Read
-	printf("reading\n");
-	sleep(3);
-	printf("read\n");
-	
-	// Decrement the number of readers
-	res = semop(semId, &sem_lock, 1);
-	sprintf(sharedReadersCount, "%d", atoi(sharedReadersCount) - 1);
-	res = semop(semId, &sem_unlock, 1);
-}*/
-
 
 
 
@@ -218,8 +194,10 @@ void writer()
 		sleep(1);
 		semop(semId, &sem_lock, 1);
 	}
+	printf("before update reader count: %s\n", sharedReadersCount);
 	sprintf(sharedReadersCount, "%d", -1);
-	printf("reader count: %s\n", sharedReadersCount);
+	printf("after update reader count: %s\n", sharedReadersCount);
+    fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 
 	
@@ -240,44 +218,21 @@ void writer()
       /* write to shared buffer */
       for (j=0; j<FILE_SIZE-1; j++) {
           shared_buffer[j]= data[j]; 
-          delay(2);  
+          delay(3);  
       }
 
       printf("Writer %d finishes\n", writerID);
   }
+  
+    fflush(stdout);
 	
 	// Set the reader count to 0
 	res = semop(semId, &sem_lock, 1);
 	sprintf(sharedReadersCount, "%d", 0);
 	printf("reader count: %s\n", sharedReadersCount);
+    fflush(stdout);
 	res = semop(semId, &sem_unlock, 1);
 }
-
-/*void writer()
-{
-	// Set the reader count to -1
-	int res = semop(semId, &sem_lock, 1);
-	// Make sure that no one is using the data currently
-	while (atoi(sharedReadersCount) != 0)
-	{
-		// Wait and try later
-		semop(semId, &sem_unlock, 1);
-		sleep(1);
-		semop(semId, &sem_lock, 1);
-	}
-	sprintf(sharedReadersCount, "%d", -1);
-	res = semop(semId, &sem_unlock, 1);
-	
-	printf("writing\n");
-	sleep(2);
-	printf("written\n");
-	res = semop(semId, &sem_unlock, 1);
-	
-	// Set the reader count to 0
-	res = semop(semId, &sem_lock, 1);
-	sprintf(sharedReadersCount, "%d", 0);
-	res = semop(semId, &sem_unlock, 1);
-}*/
 
 
 /*-------------------------------------------
@@ -374,7 +329,7 @@ int main()
 		exit(2);
 	}
 	
-	printf("%d\n", atoi(sharedReadersCount));
+	//printf("%d\n", atoi(sharedReadersCount));
 
   /*------------------------------------------------------- 
   
@@ -396,7 +351,7 @@ int main()
   /* delay 15 seconds so all previous readers/writes can finish.
    * This is to prevent writer starvation
    */
-  delay(50);
+  delay(150);
 
 
   create_writer();
